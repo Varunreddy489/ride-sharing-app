@@ -1,0 +1,12 @@
+from src.auth.auth_repo import AuthRepo
+from src.auth.auth_schema import RegisterRequestSchema
+from src.auth.auth_service import AuthService
+
+
+class AuthController:
+    def __init__(self, session):
+        repo = AuthRepo(session)
+        self.service = AuthService(repo)
+
+    async def register(self, payload: RegisterRequestSchema):
+        return await self.service.register_user(payload)

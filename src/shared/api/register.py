@@ -2,6 +2,8 @@ from types import ModuleType
 
 from fastapi import FastAPI
 
+from src.auth import auth_routes
+
 
 def _register(uri_prefix: str, modules: list[ModuleType], app: FastAPI):
     for module in modules:
@@ -11,5 +13,5 @@ def _register(uri_prefix: str, modules: list[ModuleType], app: FastAPI):
 
 def register_v1_routes(app: FastAPI) -> FastAPI:
 
-    v1_modules: list[ModuleType] = []
+    v1_modules: list[ModuleType] = [auth_routes]
     return _register("/v1", v1_modules, app)

@@ -30,4 +30,4 @@ class AuthRepo:
         self.session.add(user)
         await self.session.commit()
         await self.session.refresh(user)
-        return RegisterResponseSchema.from_orm(user)
+        return RegisterResponseSchema.model_validate(user)

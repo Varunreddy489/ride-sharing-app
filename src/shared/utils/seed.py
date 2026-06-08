@@ -2,7 +2,7 @@ import asyncio
 
 from sqlalchemy import text
 
-from src.utils.database import async_session_factory
+from src.shared.db.db_manager import async_session_factory
 
 
 async def seed_users(session):

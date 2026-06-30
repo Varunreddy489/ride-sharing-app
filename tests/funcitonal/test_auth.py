@@ -1,7 +1,7 @@
 import pytest
 
-from src.auth.auth_controller import AuthController
-from src.auth.auth_schema import RegisterRequestSchema
+from src.modules.auth.auth_controller import AuthController
+from src.modules.auth.auth_schema import RegisterRequestSchema
 
 
 class TestUserAuth:

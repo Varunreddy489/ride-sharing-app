@@ -1,12 +1,12 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.drivers.driver_repo import DriverRepo
-from src.drivers.driver_schema import (
+from src.modules.drivers.driver_repo import DriverRepo
+from src.modules.drivers.driver_schema import (
     DriverRequestSchema,
     DriverResponseSchema,
     DriverStatusUpdateRequestSchema,
 )
-from src.drivers.driver_service import DriverService
+from src.modules.drivers.driver_service import DriverService
 
 
 class DriverController:

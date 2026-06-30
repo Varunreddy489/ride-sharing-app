@@ -1,4 +1,4 @@
-from src.auth.auth_schema import RegisterRequestSchema
+from src.modules.auth.auth_schema import RegisterRequestSchema
 from src.shared.utils.auth_utils import AuthUtils
 from src.shared.utils.exceptions import DuplicateResourceException
 

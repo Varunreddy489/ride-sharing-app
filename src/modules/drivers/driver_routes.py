@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.drivers.driver_controller import DriverController
-from src.drivers.driver_schema import (
+from src.modules.drivers.driver_controller import DriverController
+from src.modules.drivers.driver_schema import (
     DriverRequestSchema,
     DriverResponseSchema,
     DriverStatusUpdateRequestSchema,

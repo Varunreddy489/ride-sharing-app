@@ -1,6 +1,23 @@
+import os
 from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class GoogleMapsSettings:
+    """
+    Configuration for Google Maps integration
+    """
+
+    @property
+    def google_maps_base_url(self) -> str:
+        return os.environ.get(
+            "GOOGLE_MAPS_BASE_API", "https://maps.googleapis.com/maps/api"
+        )
+
+    @property
+    def maps_timeout(self) -> int:
+        return os.environ.get("MAPS_TIMEOUT", "10")
 
 
 class Settings(BaseSettings):
@@ -15,6 +32,18 @@ class Settings(BaseSettings):
     db_host: str = "postgres"
     db_port: int = 5433
 
+    # redis
+    redis_host: str = os.environ.get("REDIS_HOST")
+    redis_port: int = int(os.environ.get("REDIS_PORT", 6379))
+    redis_password: str | None = os.getenv("REDIS_PASSWORD")
+    redis_db: int = os.getenv("REDIS_DB", "0")
+
+    # Google Maps
+    google_maps_api_key: str = os.environ.get("GOOGLE_MAPS_KEY")
+
+    # Fare
+    base_fare: int = int(os.environ.get("BASE_FARE", "30"))
+
     # JWT (optional, for future auth if needed)
     jwt_secret: str | None = None
     jwt_algorithm: str = "HS256"
@@ -25,8 +54,18 @@ class Settings(BaseSettings):
     debug: bool = False
 
     @property
+    def redis_url(self) -> str:
+
+        auth = f":{self.redis_password}@" if self.redis_password else ""
+        return f"redis://{auth}{self.redis_host}:{self.redis_port}/{self.redis_db}"
+
+    @property
     def database_url(self) -> str:
         return f"postgresql+psycopg://{self.postgres_user}:{self.postgres_password}@{self.db_host}:{self.db_port}/{self.postgres_db}"
+
+    @property
+    def google_maps_settings(self) -> GoogleMapsSettings:
+        return GoogleMapsSettings()
 
 
 @lru_cache

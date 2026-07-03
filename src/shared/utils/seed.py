@@ -19,15 +19,13 @@ async def seed_users(session):
 
     for user in users:
         await session.execute(
-            text(
-                """
+            text("""
                 INSERT INTO users
                 (name, email, phone_number, password, role)
                 VALUES
                 (:name, :email, :phone_number, :password, :role)
                 ON CONFLICT (email) DO NOTHING
-                """
-            ),
+                """),
             user,
         )
 
@@ -36,23 +34,20 @@ async def seed_users(session):
 
 async def seed_drivers(session):
     result = await session.execute(
-        text(
-            """
+        text("""
             SELECT id
             FROM users
             WHERE role='RIDER'
             ORDER BY id
             LIMIT 10
-            """
-        )
+            """)
     )
 
     users = result.fetchall()
 
     for index, user in enumerate(users, start=1):
         await session.execute(
-            text(
-                """
+            text("""
                 INSERT INTO drivers
                 (
                     user_id,
@@ -68,8 +63,7 @@ async def seed_drivers(session):
                     :is_available
                 )
                 ON CONFLICT (user_id) DO NOTHING
-                """
-            ),
+                """),
             {
                 "user_id": user.id,
                 "license_number": f"DL202600{index:03}",

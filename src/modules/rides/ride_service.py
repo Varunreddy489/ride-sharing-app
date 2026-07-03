@@ -15,7 +15,7 @@ class RideService:
         self.ride_utils = RideUtils()
         self.ws_manager = WebSocketManager()
 
-    async def book_ride(self, payload: RideRequestSchema):
+    async def create_ride(self, payload: RideRequestSchema):
         """
         1.  Check Valid User
         2.  Calculate Distance ( use google_maps )
@@ -27,7 +27,7 @@ class RideService:
         5.  Driver ride acceptance workflow
                 a. Only 1 Driver must accept
                 b. If Driver Rejects move on to another driver
-        6.  Driver Comes to pickup ( Ride Event updates from  DRIVER_ARRIVING to DRIVER_ARRIVED  )
+        6.  Driver Comes to pickup ( Ride Event updates from  DRIVER_ARRIVING to DRIVER_ARRIVED)
         7.  Driver Picks up Rider
         8.  Ride Starts
         9. Location is updated Every 30 Seconds
@@ -51,14 +51,23 @@ class RideService:
         # calculate fare
         fare = self.ride_utils.calculate_ride_fare(distance)
 
+        # Create Ride first so all the drivers can see the ride request and accept it
+        ride = await self.ride_repo.create_ride(
+            payload=payload,
+            fare=fare,
+            distance=distance,
+            requested_at=requested_time,
+        )
+
         # get nearby drivers
         drivers = await self.driver_repo.get_nearby_drivers(payload.pickup_point, 2000)
 
         ride_payload = {
+            "ride_id": ride.id,
             "pickup": payload.pickup_point,
             "dropoff": payload.dropoff_point,
             "fare": fare,
-            distance: distance,
+            "distance": distance,
         }
 
         for driver in drivers:
@@ -68,4 +77,17 @@ class RideService:
                 data=ride_payload,
             )
 
-        # Todo: Lock the db so that only one driver can accept the ride
+        return {"ride_id": ride.id, "status": ride.status}
+
+    async def accept_ride(self, ride_id: int, driver_id: int):
+        """
+        Accept Ride with Optimistic Locking
+        """
+        ride = await self.ride_repo.driver_accept_ride(ride_id, driver_id)
+
+        if not ride:
+            raise ResourceNotFoundException(
+                "Ride not found or already accepted by another driver"
+            )
+
+        return {"ride_id": ride.id, "driver_id": driver_id, "status": ride.status}

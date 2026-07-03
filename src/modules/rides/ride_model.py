@@ -12,6 +12,7 @@ class RideModel(Base):
     __tablename__ = "ride_requests"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    lock_version: Mapped[int] = mapped_column(BigInteger, nullable=False)
     rider_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
     driver_id: Mapped[int] = mapped_column(BigInteger, nullable=True)
     vehicle_id: Mapped[int] = mapped_column(BigInteger, nullable=True)

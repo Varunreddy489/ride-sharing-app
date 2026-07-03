@@ -176,6 +176,7 @@ def upgrade() -> None:
         sa.Column(
             "id", sa.BigInteger(), primary_key=True, autoincrement=True, nullable=False
         ),
+        sa.Column("lock_version", sa.Integer, nullable=False),
         sa.Column(
             "rider_id", sa.BigInteger(), sa.ForeignKey("users.id"), nullable=False
         ),

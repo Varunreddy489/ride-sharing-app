@@ -1,8 +1,8 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.auth.auth_schema import RegisterRequestSchema, RegisterResponseSchema
-from src.users.user_model import UserModel
+from src.modules.auth.auth_schema import RegisterRequestSchema, RegisterResponseSchema
+from src.modules.users.user_model import UserModel
 
 
 class AuthRepo:

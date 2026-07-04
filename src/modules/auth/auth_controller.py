@@ -1,8 +1,8 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.auth.auth_repo import AuthRepo
-from src.auth.auth_schema import RegisterRequestSchema
-from src.auth.auth_service import AuthService
+from src.modules.auth.auth_repo import AuthRepo
+from src.modules.auth.auth_schema import RegisterRequestSchema
+from src.modules.auth.auth_service import AuthService
 
 
 class AuthController:

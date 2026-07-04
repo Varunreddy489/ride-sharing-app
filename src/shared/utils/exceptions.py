@@ -29,3 +29,10 @@ class ResourceNotFoundException(BaseException):
 
     def __init__(self, message: str):
         super().__init__(message, status_code=status.HTTP_404_NOT_FOUND)
+
+
+class InvalidStateTransitionError(BaseException):
+    """Exception raised when a resource is not found."""
+
+    def __init__(self, message: str):
+        super().__init__(message, status_code=status.HTTP_405_METHOD_NOT_ALLOWED)

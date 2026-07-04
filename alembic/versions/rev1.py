@@ -1,5 +1,6 @@
 import sqlalchemy as sa
-from sqlalchemy.dialects.postgresql import ENUM, JSONB
+from geoalchemy2 import Geography
+from sqlalchemy.dialects.postgresql import ENUM
 
 from alembic import op  # type: ignore[attr-defined]
 
@@ -13,7 +14,11 @@ USER_ROLES_ENUM = ENUM("ADMIN", "DRIVER", "RIDER", name="user_roles", create_typ
 
 RIDE_STATUS_ENUM = ENUM(
     "PENDING",
-    "ACCEPTED",
+    "DRIVER_ASSIGNED",
+    "DRIVER_ARRIVING",
+    "DRIVER_ARRIVED",
+    "RIDE_STARTED",
+    "IN_PROGRESS",
     "COMPLETED",
     "CANCELED",
     "REJECTED",
@@ -46,26 +51,12 @@ WALLET_TRANSACTION_TYPE_ENUM = ENUM(
     create_type=False,
 )
 
-RIDE_EVENTS_ENUM = ENUM(
-    "RIDE_REQUESTED",
-    "RIDE_STARTED",
-    "RIDE_COMPLETED",
-    "RIDE_CANCELED",
-    "RIDE_REJECTED",
-    "DRIVER_ACCEPTED",
-    "DRIVER_REJECTED",
-    "DRIVER_ARRIVED",
-    name="ride_event_type",
-    create_type=False,
-)
-
 ENUM_TYPES = (
     USER_ROLES_ENUM,
     RIDE_STATUS_ENUM,
     TRANSACTION_TYPE_ENUM,
     TRANSACTIONS_STATUS_ENUM,
     WALLET_TRANSACTION_TYPE_ENUM,
-    RIDE_EVENTS_ENUM,
 )
 
 CREATED_INDEXES = (
@@ -83,20 +74,25 @@ CREATED_TABLES = (
     "wallet_transactions",
     "wallets",
     "payments",
-    "ratings",
     "ride_events",
     "ride_requests",
     "vehicles",
     "drivers",
     "users",
+    "driver_locations",
 )
 
 
 def upgrade() -> None:
     bind = op.get_bind()
+    # Ensure PostGIS is available
+    op.execute("CREATE EXTENSION IF NOT EXISTS postgis")
+
+    # Create ENUM types first
     for enum_type in ENUM_TYPES:
         enum_type.create(bind, checkfirst=True)
 
+    # Users table
     op.create_table(
         "users",
         sa.Column(
@@ -123,6 +119,7 @@ def upgrade() -> None:
         sa.UniqueConstraint("phone_number", name="uq_users_phone_number"),
     )
 
+    # Drivers table
     op.create_table(
         "drivers",
         sa.Column(
@@ -155,6 +152,7 @@ def upgrade() -> None:
         sa.UniqueConstraint("license_number", name="uq_drivers_license_number"),
     )
 
+    # Vehicles table
     op.create_table(
         "vehicles",
         sa.Column(
@@ -172,19 +170,30 @@ def upgrade() -> None:
         sa.CheckConstraint("capacity > 0", name="chk_vehicles_capacity"),
     )
 
+    # Ride requests: use PostGIS Geography POINT columns for pickup and dropoff
     op.create_table(
         "ride_requests",
         sa.Column(
             "id", sa.BigInteger(), primary_key=True, autoincrement=True, nullable=False
         ),
+        sa.Column("lock_version", sa.Integer, nullable=False),
         sa.Column(
             "rider_id", sa.BigInteger(), sa.ForeignKey("users.id"), nullable=False
         ),
         sa.Column(
             "driver_id", sa.BigInteger(), sa.ForeignKey("drivers.id"), nullable=True
         ),
-        sa.Column("pickup_location", sa.String, nullable=False),
-        sa.Column("dropoff_location", sa.String, nullable=False),
+        # store as geography POINT (lon, lat) with SRID 4326 so
+        # you can store values like 17.3616 N, 78.4747 E
+        sa.Column(
+            "pickup_point",
+            nullable=False,
+        ),
+        sa.Column(
+            "dropoff_point",
+            Geography(geometry_type="POINT", srid=4326),
+            nullable=False,
+        ),
         sa.Column("status", RIDE_STATUS_ENUM, nullable=False, server_default="PENDING"),
         sa.Column("fare", sa.Numeric(precision=10, scale=2), nullable=True),
         sa.Column(
@@ -202,6 +211,12 @@ def upgrade() -> None:
         sa.Column("distance_km", sa.Float, nullable=True),
         sa.Column("duration_minutes", sa.Float, nullable=True),
         sa.CheckConstraint("fare IS NULL OR fare >= 0", name="chk_ride_fare"),
+        sa.Column(
+            "vehicle_id",
+            sa.BigInteger(),
+            sa.ForeignKey("vehicles.id", ondelete="SET NULL"),
+            nullable=True,
+        ),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -221,55 +236,7 @@ def upgrade() -> None:
     op.create_index("ix_ride_requests_driver_id", "ride_requests", ["driver_id"])
     op.create_index("ix_ride_requests_status", "ride_requests", ["status"])
 
-    op.create_table(
-        "ride_events",
-        sa.Column(
-            "id", sa.BigInteger(), primary_key=True, autoincrement=True, nullable=False
-        ),
-        sa.Column(
-            "ride_request_id",
-            sa.BigInteger(),
-            sa.ForeignKey("ride_requests.id", ondelete="CASCADE"),
-            nullable=False,
-        ),
-        sa.Column("metadata", JSONB, nullable=True),
-        sa.Column("event_type", RIDE_EVENTS_ENUM, nullable=False),
-        sa.Column(
-            "created_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.func.now(),
-            nullable=False,
-        ),
-    )
-    op.create_index("ix_ride_events_event_type", "ride_events", ["event_type"])
-    op.create_index(
-        "ix_ride_events_ride_request_id", "ride_events", ["ride_request_id"]
-    )
-
-    op.create_table(
-        "ratings",
-        sa.Column(
-            "id", sa.BigInteger(), primary_key=True, autoincrement=True, nullable=False
-        ),
-        sa.Column(
-            "ride_request_id",
-            sa.BigInteger(),
-            sa.ForeignKey("ride_requests.id", ondelete="CASCADE"),
-            nullable=False,
-        ),
-        sa.Column("rider_rating", sa.Integer, nullable=True),
-        sa.Column("driver_rating", sa.Integer, nullable=True),
-        sa.CheckConstraint(
-            "rider_rating IS NULL OR rider_rating BETWEEN 1 AND 5",
-            name="chk_rider_rating",
-        ),
-        sa.CheckConstraint(
-            "driver_rating IS NULL OR driver_rating BETWEEN 1 AND 5",
-            name="chk_driver_rating",
-        ),
-        sa.UniqueConstraint("ride_request_id", name="uq_ratings_ride_request_id"),
-    )
-
+    # Payments
     op.create_table(
         "payments",
         sa.Column(
@@ -308,6 +275,7 @@ def upgrade() -> None:
         "ix_payments_transaction_status", "payments", ["transaction_status"]
     )
 
+    # Wallets
     op.create_table(
         "wallets",
         sa.Column(
@@ -341,6 +309,7 @@ def upgrade() -> None:
         sa.UniqueConstraint("user_id", name="uq_wallets_user_id"),
     )
 
+    # Wallet transactions
     op.create_table(
         "wallet_transactions",
         sa.Column(
@@ -383,14 +352,50 @@ def upgrade() -> None:
         "ix_wallet_transactions_status", "wallet_transactions", ["transaction_status"]
     )
 
+    # Driver locations: use a single geography point column instead of lat/long
+    op.create_table(
+        "driver_locations",
+        sa.Column(
+            "id", sa.BigInteger(), primary_key=True, autoincrement=True, nullable=False
+        ),
+        sa.Column(
+            "driver_id",
+            sa.BigInteger(),
+            sa.ForeignKey("drivers.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
+        sa.Column(
+            "location",
+            Geography(geometry_type="POINT", srid=4326),
+            nullable=False,
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
+    )
+
 
 def downgrade() -> None:
+    op.execute("DROP EXTENSION IF EXISTS postgis")
+
+    # Drop indexes
     for index_name, table_name in CREATED_INDEXES:
         op.drop_index(index_name, table_name=table_name, if_exists=True)
 
+    # Drop tables (if_exists to be safe)
     for table_name in CREATED_TABLES:
         op.drop_table(table_name, if_exists=True)
 
+    # Drop enum types
     bind = op.get_bind()
     for enum_type in reversed(ENUM_TYPES):
         enum_type.drop(bind, checkfirst=True)

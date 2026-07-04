@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 
 import pendulum
 from sqlalchemy import select, update
@@ -6,6 +6,7 @@ from sqlalchemy import select, update
 from src.modules.rides.ride_model import RideModel
 from src.modules.rides.ride_schema import RideRequestSchema
 from src.shared.utils.enums import RideStatus
+from src.shared.utils.state_machine import validate_transition
 
 
 class RideRepo:
@@ -83,4 +84,47 @@ class RideRepo:
             return None
 
         ride = await self.session.get(RideModel, updated_id)
+        return ride
+
+    async def update_ride_status(
+        self, ride_id: int, ride_status: RideStatus
+    ) -> RideModel | None:
+        result = await self.session.execute(
+            select(RideModel).where(RideModel.id == ride_id)
+        )
+        ride = result.scalar_one_or_none()
+
+        if not ride:
+            return None
+
+        current_status = ride.status
+
+        valid_state_transition = validate_transition(current_status, ride_status)
+
+        if not valid_state_transition:
+            return None
+
+        match ride_status:
+            case RideStatus.DRIVER_ARRIVED:
+                ride.status = RideStatus.DRIVER_ARRIVED
+            case RideStatus.RIDE_STARTED:
+                ride.status = RideStatus.RIDE_STARTED
+                ride.started_at = pendulum.now("UTC").to_datetime_string()
+            case RideStatus.IN_PROGRESS:
+                ride.status = RideStatus.IN_PROGRESS
+            case RideStatus.COMPLETED:
+                ride.status = RideStatus.COMPLETED
+                ride.completed_at = pendulum.now("UTC").to_datetime_string()
+            case RideStatus.CANCELED:
+                ride.status = RideStatus.CANCELED
+                ride.canceled_at = pendulum.now("UTC").to_datetime_string()
+            case RideStatus.REJECTED:
+                ride.status = RideStatus.REJECTED
+            case _:
+                ride.status = RideStatus.TIMED_OUT
+
+        self.session.add(ride)
+        self.session.commit()
+        self.session.refresh(ride)
+
         return ride

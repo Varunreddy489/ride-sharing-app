@@ -4,7 +4,7 @@ from sqlalchemy.dialects.postgresql import ENUM
 
 from alembic import op  # type: ignore[attr-defined]
 
-revision = "rev1_rev2_combined"
+revision = "rev1"
 
 down_revision = "rev0"
 depends_on = None
@@ -183,7 +183,8 @@ def upgrade() -> None:
         sa.Column(
             "driver_id", sa.BigInteger(), sa.ForeignKey("drivers.id"), nullable=True
         ),
-        # store as geography POINT (lon, lat) with SRID 4326 so you can store values like 17.3616 N, 78.4747 E
+        # store as geography POINT (lon, lat) with SRID 4326 so
+        # you can store values like 17.3616 N, 78.4747 E
         sa.Column(
             "pickup_point",
             nullable=False,

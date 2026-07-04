@@ -17,9 +17,9 @@ VALID_RIDE_TRANSITIONS: dict[RideStatus, set[RideStatus]] = {
     RideStatus.DRIVER_ARRIVED: {RideStatus.RIDE_STARTED, RideStatus.CANCELED},
     RideStatus.RIDE_STARTED: {RideStatus.IN_PROGRESS},
     RideStatus.IN_PROGRESS: {RideStatus.COMPLETED},
-    RideStatus.CANCELED: {},
-    RideStatus.TIMED_OUT: {},
-    RideStatus.REJECTED: {},
+    RideStatus.CANCELED: set(),
+    RideStatus.TIMED_OUT: set(),
+    RideStatus.REJECTED: set(),
 }
 
 RETRYABLE_HTTP_ERROR_CODES = [

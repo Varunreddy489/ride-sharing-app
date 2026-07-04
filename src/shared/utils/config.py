@@ -17,7 +17,7 @@ class GoogleMapsSettings:
 
     @property
     def maps_timeout(self) -> int:
-        return os.environ.get("MAPS_TIMEOUT", "10")
+        return int(os.environ.get("MAPS_TIMEOUT", "10"))
 
 
 class Settings(BaseSettings):
@@ -33,13 +33,14 @@ class Settings(BaseSettings):
     db_port: int = 5433
 
     # redis
-    redis_host: str = os.environ.get("REDIS_HOST")
+    redis_host: str | None = os.environ.get("REDIS_HOST")
     redis_port: int = int(os.environ.get("REDIS_PORT", 6379))
     redis_password: str | None = os.getenv("REDIS_PASSWORD")
-    redis_db: int = os.getenv("REDIS_DB", "0")
+    redis_db: int = int(os.getenv("REDIS_DB", "0"))
+    ride_cache_ttl: int = int(os.getenv("RIDE_CACHE_TTL", 60 * 60))  # 1 Hour
 
     # Google Maps
-    google_maps_api_key: str = os.environ.get("GOOGLE_MAPS_KEY")
+    google_maps_api_key: str | None = os.environ.get("GOOGLE_MAPS_KEY")
 
     # Fare
     base_fare: int = int(os.environ.get("BASE_FARE", "30"))
@@ -55,7 +56,6 @@ class Settings(BaseSettings):
 
     @property
     def redis_url(self) -> str:
-
         auth = f":{self.redis_password}@" if self.redis_password else ""
         return f"redis://{auth}{self.redis_host}:{self.redis_port}/{self.redis_db}"
 

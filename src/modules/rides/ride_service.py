@@ -1,39 +1,26 @@
+from typing import Any
+
 import pendulum
 
 from src.modules.rides.ride_schema import RideLocationSchema, RideRequestSchema
 from src.modules.ws.ws_manager import WebSocketManager
 from src.shared.integrations.google_maps import get_distance
+from src.shared.utils.enums import RideStatus
 from src.shared.utils.exceptions import ResourceNotFoundException
 from src.shared.utils.ride_utils import RideUtils
 
 
 class RideService:
-    def __init__(self, ride_repo, user_repo, driver_repo):
+    def __init__(self, ride_repo, user_repo, driver_repo, redis_client):
         self.ride_repo = ride_repo
         self.user_repo = user_repo
         self.driver_repo = driver_repo
         self.ride_utils = RideUtils()
         self.ws_manager = WebSocketManager()
+        self.redis_client = redis_client
 
     async def create_ride(self, payload: RideRequestSchema):
-        """
-        1.  Check Valid User
-        2.  Calculate Distance ( use google_maps )
-        3.  Calculate Fare
-        4.  Get Nearby Drivers ( 2km )
-                a. If not found ( is_online &  is_available NOT true ) extend the search to 4 then 6 till 10
-                b. Search max for 10 mins5.  If any drivers found nearby send them the request containing
-            (rider_name,pickup and drop locations,distance,fare,estimated time to reach the destination)
-        5.  Driver ride acceptance workflow
-                a. Only 1 Driver must accept
-                b. If Driver Rejects move on to another driver
-        6.  Driver Comes to pickup ( Ride Event updates from  DRIVER_ARRIVING to DRIVER_ARRIVED)
-        7.  Driver Picks up Rider
-        8.  Ride Starts
-        9. Location is updated Every 30 Seconds
-        10. Ride is completed
-        11. Rider transfers money to Driver in his Wallet
-        """
+        """ """
 
         requested_time = pendulum.now("UTC")
 
@@ -85,9 +72,26 @@ class RideService:
         """
         ride = await self.ride_repo.driver_accept_ride(ride_id, driver_id)
 
+        await self.redis_client.cache_ride_status(ride_id, RideStatus.DRIVER_ARRIVING)
+
         if not ride:
             raise ResourceNotFoundException(
                 "Ride not found or already accepted by another driver"
             )
 
         return {"ride_id": ride.id, "driver_id": driver_id, "status": ride.status}
+
+    async def update_ride_event(self, ride_id: int, event: RideStatus):
+        """
+        Update Ride Event
+        """
+        ride: Any
+        ride = await self.ride_repo.update_ride_status(ride_id, event)
+
+        # Add Ride Status to Redis Cache
+        await self.redis_client.cache_ride_status(ride_id, event)
+
+        if not ride:
+            raise ResourceNotFoundException("Ride not found")
+
+        return {"ride_id": ride.id, "status": ride.status}

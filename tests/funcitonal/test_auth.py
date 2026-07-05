@@ -8,8 +8,7 @@ class TestUserAuth:
     @staticmethod
     @pytest.mark.asyncio
     async def test_user_registration(user_register_data, db_session):
-
         payload = RegisterRequestSchema(**user_register_data)
         controller = AuthController(db_session)
         response = await controller.register(payload)
-        print(f"response: {response}")
+        assert response.name == payload.name

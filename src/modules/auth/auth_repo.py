@@ -18,8 +18,8 @@ class AuthRepo:
         )
 
         return (
-            is_email.scalar_one_or_none() is None
-            or is_phone_number.scalar_one_or_none() is None
+            is_email.scalar_one_or_none() is not None
+            and is_phone_number.scalar_one_or_none() is not None
         )
 
     async def create_user(

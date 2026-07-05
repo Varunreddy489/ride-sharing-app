@@ -18,3 +18,15 @@ async def register(
 ):
     controller = AuthController(session)
     return await controller.register(payload)
+
+
+@router.post(
+    "/login",
+    status_code=status.HTTP_201_CREATED,
+    response_model=RegisterResponseSchema,
+)
+async def login(
+    payload: RegisterRequestSchema, session: AsyncSession = Depends(get_db)
+):
+    controller = AuthController(session)
+    return await controller.login(payload)

@@ -1,3 +1,15 @@
+import asyncio
+import os
+import sys
+
+# Set Windows event loop policy BEFORE any async imports
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
+# Set test environment variables BEFORE importing db_manager
+os.environ.setdefault("DB_HOST", "localhost")
+os.environ.setdefault("DB_PORT", "5433")
+
 import pytest
 import pytest_asyncio
 

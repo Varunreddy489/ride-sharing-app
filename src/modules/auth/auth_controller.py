@@ -12,3 +12,6 @@ class AuthController:
 
     async def register(self, payload: RegisterRequestSchema):
         return await self.service.register_user(payload)
+
+    async def login(self, payload: RegisterRequestSchema):
+        return await self.service.login_user(payload)

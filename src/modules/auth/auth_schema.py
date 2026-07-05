@@ -18,3 +18,13 @@ class RegisterResponseSchema(BaseResponsesSchema):
     email: str = Field(..., description="User's email")
     phone_number: str = Field(..., description="User's phone number")
     role: UserRoles = Field(..., description="User's role")
+
+
+class LoginRequestSchema(BaseModel):
+    email: str = Field(..., description="User's email")
+    password: str = Field(..., description="User's password")
+
+
+class Token(BaseModel):
+    access_token: str = Field(..., description="Access token")
+    token_type: str = Field(..., description="Token type")

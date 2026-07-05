@@ -187,6 +187,7 @@ def upgrade() -> None:
         # you can store values like 17.3616 N, 78.4747 E
         sa.Column(
             "pickup_point",
+            Geography(geometry_type="POINT", srid=4326),
             nullable=False,
         ),
         sa.Column(

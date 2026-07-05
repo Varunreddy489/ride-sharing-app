@@ -59,7 +59,7 @@ class RideRepo:
         if current.status != RideStatus.PENDING or current.driver_id is not None:
             return None
 
-        accepted_at = pendulum.now("UTC").to_datetime_string()
+        accepted_at = pendulum.now("UTC")
 
         update_result = await self.session.execute(
             update(RideModel)
@@ -109,15 +109,15 @@ class RideRepo:
                 ride.status = RideStatus.DRIVER_ARRIVED
             case RideStatus.RIDE_STARTED:
                 ride.status = RideStatus.RIDE_STARTED
-                ride.started_at = pendulum.now("UTC").to_datetime_string()
+                ride.started_at = pendulum.now("UTC")
             case RideStatus.IN_PROGRESS:
                 ride.status = RideStatus.IN_PROGRESS
             case RideStatus.COMPLETED:
                 ride.status = RideStatus.COMPLETED
-                ride.completed_at = pendulum.now("UTC").to_datetime_string()
+                ride.completed_at = pendulum.now("UTC")
             case RideStatus.CANCELED:
                 ride.status = RideStatus.CANCELED
-                ride.canceled_at = pendulum.now("UTC").to_datetime_string()
+                ride.canceled_at = pendulum.now("UTC")
             case RideStatus.REJECTED:
                 ride.status = RideStatus.REJECTED
             case _:

@@ -46,9 +46,9 @@ class Settings(BaseSettings):
     base_fare: int = int(os.environ.get("BASE_FARE", "30"))
 
     # JWT (optional, for future auth if needed)
-    jwt_secret: str | None = None
-    jwt_algorithm: str = "HS256"
-    jwt_expire_minutes: int = 30
+    jwt_secret: str | None = os.environ.get("JWT_SECRET", "your_jwt_secret_key")
+    jwt_algorithm: str = os.environ.get("ALGORITHM", "HS256")
+    jwt_expire_minutes: int = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
 
     # App
     app_name: str = "FastAPI Starter"

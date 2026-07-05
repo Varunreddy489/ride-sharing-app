@@ -1,18 +1,34 @@
-import bcrypt
+import jwt
+import pendulum
+from pwdlib import PasswordHash
+
+from src.shared.utils.config import get_settings
+from src.shared.utils.enums import UserRoles
 
 
 class AuthUtils:
-    @staticmethod
-    def hash_password(password: str) -> str:
+    def __init__(self):
+        self.password_hash = PasswordHash.recommended()
+        self.settings = get_settings()
+
+    def hash_password(self, password: str) -> str:
         # Implement your password hashing logic here
-        # For example, you can use bcrypt or any other hashing library
-        salt = bcrypt.gensalt()
-        hashed_password = bcrypt.hashpw(password.encode("utf-8"), salt)
-        return hashed_password.decode("utf-8")
+        return self.password_hash.hash(password)
 
-    @staticmethod
-    def verify_password(password: str, hashed_password: str) -> bool:
+    def verify_password(self, password: str, hashed_password: str) -> bool:
         # Implement your password verification logic here
-        return bcrypt.checkpw(password.encode("utf-8"), hashed_password.encode("utf-8"))
+        return self.password_hash.verify(
+            password.encode("utf-8"), hashed_password.encode("utf-8")
+        )
 
-    # def create_access_token(self,):
+    def create_access_token(self, user_id: int, role: UserRoles) -> str:
+        expire = pendulum.now().add(minutes=self.settings.jwt_expire_minutes)
+
+        access_token = jwt.encode(
+            user_id,
+            self.settings.jwt_secret,
+            algorithm=self.settings.jwt_algorithm,
+            expires=expire,
+        )
+
+        return access_token

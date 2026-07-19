@@ -1,3 +1,5 @@
+import uuid
+
 import jwt
 import pendulum
 from pwdlib import PasswordHash
@@ -12,23 +14,25 @@ class AuthUtils:
         self.settings = get_settings()
 
     def hash_password(self, password: str) -> str:
-        # Implement your password hashing logic here
         return self.password_hash.hash(password)
 
     def verify_password(self, password: str, hashed_password: str) -> bool:
-        # Implement your password verification logic here
         return self.password_hash.verify(
             password.encode("utf-8"), hashed_password.encode("utf-8")
         )
 
     def create_access_token(self, user_id: int, role: UserRoles) -> str:
-        expire = pendulum.now().add(minutes=self.settings.jwt_expire_minutes)
+        now = pendulum.now()
+        expire = now.add(minutes=self.settings.jwt_expire_minutes)
 
-        access_token = jwt.encode(
-            user_id,
-            self.settings.jwt_secret,
-            algorithm=self.settings.jwt_algorithm,
-            expires=expire,
+        jwt_payload = {
+            "sub": str(user_id),
+            "role": role.value,
+            "iat": now.int_timestamp,
+            "exp": expire.int_timestamp,
+            "jti": str(uuid.uuid4()),
+        }
+
+        return jwt.encode(
+            jwt_payload, self.settings.jwt_secret, algorithm=self.settings.jwt_algorithm
         )
-
-        return access_token

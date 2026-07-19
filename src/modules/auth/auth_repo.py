@@ -9,18 +9,20 @@ class AuthRepo:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def check_user_exists(self, email: str, phone_number: str) -> bool:
-        is_email = await self.session.execute(
+    async def get_user_by_email(self, email: str) -> RegisterResponseSchema | None:
+        result = await self.session.execute(
             select(UserModel).where(UserModel.email == email)
         )
-        is_phone_number = await self.session.execute(
+        user = result.scalar_one_or_none()
+        return RegisterResponseSchema.model_validate(user) if user else None
+
+    async def check_user_exists(self, phone_number: str) -> UserModel:
+        result = await self.session.execute(
             select(UserModel).where(UserModel.phone_number == phone_number)
         )
+        user = result.scalar_one_or_none()
 
-        return (
-            is_email.scalar_one_or_none() is not None
-            and is_phone_number.scalar_one_or_none() is not None
-        )
+        return user
 
     async def create_user(
         self, payload: RegisterRequestSchema
